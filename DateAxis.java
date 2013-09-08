@@ -22,7 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-/**
+/*
 * Created with IntelliJ IDEA.
 * User: Pedro Duque Vieira
 * Date: 15-08-2013
@@ -33,7 +33,7 @@ public class DateAxis extends ValueAxis<Long> {
 
     /** We use these for auto ranging to pick a user friendly tick unit. */
     private static final double[] TICK_UNIT_DEFAULTS = {
-            1296000000
+        86400000, 1296000000, 267840000E1
     };
 
     /** These are matching date formatter strings */
@@ -554,7 +554,24 @@ public class DateAxis extends ValueAxis<Long> {
         System.out.println("This is the second date toString = " + timeConverter.toString(secondDate));
         long firstDateValue = date.getTime();
         long secondDateValue = secondDate.getTime();
-        System.out.println("This is the difference of value between the first and second date - " + (secondDateValue - firstDateValue));
+        System.out.println("This is the difference of value between the first and second date (15 days) - " + (secondDateValue - firstDateValue));
+
+        // What is 1 day converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 1);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (1 day) - " + (secondDateValue - firstDateValue));
+
+        // What is 1 mont converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 31);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (31 day) - " + (secondDateValue - firstDateValue));
+
+
+
     }
 
 }
