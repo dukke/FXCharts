@@ -31,13 +31,39 @@ import java.util.*;
 */
 public class DateAxis extends ValueAxis<Long> {
 
-    /** We use these for auto ranging to pick a user friendly tick unit. */
+    /** We use these for auto ranging to pick a user friendly tick unit. (must be increasingly bigger)*/
     private static final double[] TICK_UNIT_DEFAULTS = {
-        86400000, 1296000000, 267840000E1
+        86400000,
+        172800000,
+        259200000,
+        345600000,
+        432000000,
+        518400000,
+        604800000,
+        691200000,
+        777600000,
+        864000000,
+        216000000E1,
+        388800000E1,
+        604800000E1,
+        872640000E1,
+        1226880000E1,
+        1667520000E1,
+        2203200000E1,
+        2868480000E1,
+        3672000000E1,
+        4605120000E1,
+        5676480000E1,
+        6877440000E1,
+        8216640000E1,
+        9685440000E1,
+        1129248000E2
     };
 
     /** These are matching date formatter strings */
-    private static final String[] TICK_UNIT_FORMATTER_DEFAULTS = {"MM/dd/yy"};
+    private static final String[] TICK_UNIT_FORMATTER_DEFAULTS = {
+        "MM/dd/yy"
+    };
 
 
     private Object currentAnimationID;
@@ -151,13 +177,88 @@ public class DateAxis extends ValueAxis<Long> {
      * @return A range object that can be passed to setRange() and calculateTickValues()
      */
     @Override protected Object getRange() {
+        double[] newParams = recalculateTicks();
+        double newMin = newParams[0];
+        double newMax = newParams[1];
+        double newIndex = newParams[2];
+        double newTickUnit = newParams[3];
         return new double[]{
-                getLowerBound(),
-                getUpperBound(),
-                getTickUnit(),
+                newMin,
+                newMax,
+                newTickUnit,
                 getScale(),
-                currentRangeIndexProperty.get()
+                newIndex
         };
+
+//        return new double[]{
+//                getLowerBound(),
+//                getUpperBound(),
+//                getTickUnit(),
+//                getScale(),
+//                currentRangeIndexProperty.get()
+//        };
+    }
+
+    private double[] recalculateTicks()
+    {
+        final Side side = getSide();
+        final boolean vertical = Side.LEFT.equals(side) || Side.RIGHT.equals(side);
+        final double length = vertical ? getHeight() : getWidth();
+        // guess a sensible starting size for label size, that is approx 2 lines vertically or 2 charts horizontally
+        double labelSize = getTickLabelFont().getSize() * 2;
+
+        double currentRange = getUpperBound() - getLowerBound();
+
+        // calculate the number of tick-marks we can fit in the given length
+        int numOfTickMarks = (int)Math.floor(Math.abs(length)/labelSize);
+        // can never have less than 2 tick marks one for each end
+        numOfTickMarks = Math.max(numOfTickMarks, 2);
+        // calculate tick unit for the number of ticks can have in the given data range
+        double tickUnit = currentRange/(double)numOfTickMarks;
+        // search for the best tick unit that fits
+        double tickUnitRounded = 0;
+        double minRounded = 0;
+        double maxRounded = 0;
+        int count = 0;
+        double reqLength = Double.MAX_VALUE;
+        int rangeIndex = 10;
+        // loop till we find a set of ticks that fit length and result in a total of less than 20 tick marks
+        while (reqLength > length || count > 20) {
+            // find a user friendly match from our default tick units to match calculated tick unit
+            for (int i=0; i<TICK_UNIT_DEFAULTS.length; i++) {
+                double tickUnitDefault = TICK_UNIT_DEFAULTS[i];
+                if (tickUnitDefault > tickUnit) {
+                    tickUnitRounded = tickUnitDefault;
+                    rangeIndex = i;
+                    break;
+                }
+            }
+            // move min and max to nearest tick mark
+            minRounded = Math.floor(getLowerBound() / tickUnitRounded) * tickUnitRounded;
+            maxRounded = Math.ceil(getUpperBound() / tickUnitRounded) * tickUnitRounded;
+            // calculate the required length to display the chosen tick marks for real, this will handle if there are
+            // huge numbers involved etc or special formatting of the tick mark label text
+            double maxReqTickGap = 0;
+            double last = 0;
+            count = 0;
+            for (double major = minRounded; major <= maxRounded; major += tickUnitRounded, count ++)  {
+                double size = (vertical) ? measureTickMarkSize((long)major, getTickLabelRotation(), rangeIndex).getHeight() :
+                        measureTickMarkSize((long)major, getTickLabelRotation(), rangeIndex).getWidth();
+                if (major == minRounded) { // first
+                    last = size/2;
+                } else {
+                    maxReqTickGap = Math.max(maxReqTickGap, last + 6 + (size/2) );
+                }
+            }
+            reqLength = (count-1) * maxReqTickGap;
+            tickUnit = tickUnitRounded;
+            // check if we already found max tick unit
+            if (tickUnitRounded == TICK_UNIT_DEFAULTS[TICK_UNIT_DEFAULTS.length-1]) {
+                // nothing we can do so just have to use this
+                break;
+            }
+        }
+        return new double[]{minRounded, maxRounded, rangeIndex, tickUnit};
     }
 
     /**
@@ -180,18 +281,7 @@ public class DateAxis extends ValueAxis<Long> {
         setUpperBound(upperBound);
         setTickUnit(tickUnit);
 
-        ReadOnlyDoubleWrapper scalePropertyImplValue = null;
-        try {
-            Method scalePropertyImpl = ValueAxis.class.getDeclaredMethod("scalePropertyImpl");
-            scalePropertyImpl.setAccessible(true);
-            scalePropertyImplValue = (ReadOnlyDoubleWrapper) scalePropertyImpl.invoke(this);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
+        ReadOnlyDoubleWrapper scalePropertyImplValue = (ReadOnlyDoubleWrapper) ReflectionUtils.forceMethodCall(ValueAxis.class, "scalePropertyImpl", this);
 
         if(animate) {
             animator.stop(currentAnimationID);
@@ -321,8 +411,10 @@ public class DateAxis extends ValueAxis<Long> {
             }
         }
         final double range = maxValue-minValue;
-        // pad min and max by 2%, checking if the range is zero
+
+//        // pad min and max by 2%, checking if the range is zero
         final double paddedRange = (range==0) ? 2 : Math.abs(range)*1.02;
+
         final double padding = (paddedRange - range) / 2;
         // if min and max are not zero then add padding to them
         double paddedMin = minValue - padding;
@@ -548,30 +640,168 @@ public class DateAxis extends ValueAxis<Long> {
         TimeStringConverter timeConverter = new TimeStringConverter("MM/dd/yyyy");
         System.out.println("This is the date toString = " + timeConverter.toString(date));
 
-        // What is 15 days? With a long type
-        calendar.add(Calendar.DAY_OF_MONTH, 15);
-        Date secondDate = calendar.getTime();
-        System.out.println("This is the second date toString = " + timeConverter.toString(secondDate));
-        long firstDateValue = date.getTime();
-        long secondDateValue = secondDate.getTime();
-        System.out.println("This is the difference of value between the first and second date (15 days) - " + (secondDateValue - firstDateValue));
-
         // What is 1 day converted to long
         calendar = new GregorianCalendar(1900, 0, 1);
+        date = calendar.getTime();
         calendar.add(Calendar.DAY_OF_MONTH, 1);
+        Date secondDate = calendar.getTime();
+        long firstDateValue = date.getTime();
+        long secondDateValue  = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (1 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 2 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 2);
         secondDate = calendar.getTime();
         secondDateValue = secondDate.getTime();
-        System.out.println("This is the difference of value between the first and second date (1 day) - " + (secondDateValue - firstDateValue));
+        System.out.println("This is the difference of value between the first and second date (2 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 3 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 3);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (3 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 4 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 4);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (4 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 5 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 5);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (5 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 6 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 6);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (6 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 7 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 7);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (7 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 8 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 8);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (8 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 9 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 9);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (9 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 10 days converted to long
+        calendar = new GregorianCalendar(1900, 0, 1);
+        calendar.add(Calendar.DAY_OF_MONTH, 10);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (10 day) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 15 days? With a long type
+        calendar.add(Calendar.DAY_OF_MONTH, 15);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (15 days) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 20 days? With a long type
+        calendar.add(Calendar.DAY_OF_MONTH, 20);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (20 days) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 25 days? With a long type
+        calendar.add(Calendar.DAY_OF_MONTH, 25);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (25 days) - \t" + (secondDateValue - firstDateValue));
+
 
         // What is 1 mont converted to long
-        calendar = new GregorianCalendar(1900, 0, 1);
         calendar.add(Calendar.DAY_OF_MONTH, 31);
         secondDate = calendar.getTime();
         secondDateValue = secondDate.getTime();
-        System.out.println("This is the difference of value between the first and second date (31 day) - " + (secondDateValue - firstDateValue));
+        System.out.println("This is the difference of value between the first and second date (31 day) - \t" + (secondDateValue - firstDateValue));
 
+        // What is 41 days
+        calendar.add(Calendar.DAY_OF_MONTH, 41);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (41 day) - \t" + (secondDateValue - firstDateValue));
 
+        // What is 51 days
+        calendar.add(Calendar.DAY_OF_MONTH, 51);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (51 day) - \t" + (secondDateValue - firstDateValue));
 
+        // What is 62 days ( 2 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 62);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (62 days - 2 months) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 77 days ( 2 monhts and a half
+        calendar.add(Calendar.DAY_OF_MONTH, 77);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (77 days - 2.5 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 93 days ( 3 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 93);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (93 days - 3 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 108  ( 3 monhts and a half
+        calendar.add(Calendar.DAY_OF_MONTH, 108);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (108 days - 3.5 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 124  ( 4 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 124);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (124 days - 4 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 139  ( 4.5 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 139);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (139 days - 4.5 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 139  ( 5 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 155);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (155 days - 5 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 139  ( 5.5 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 170);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (170 days - 5.5 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 139  ( 6 monhts
+        calendar.add(Calendar.DAY_OF_MONTH, 186);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (186 days - 6 month) - \t" + (secondDateValue - firstDateValue));
     }
 
 }
