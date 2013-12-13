@@ -1,4 +1,4 @@
-package com.pixelduke.javafx.chart;
+package com.sutrosoftware.test.metrics.scaling;
 
 
 import com.sun.javafx.charts.Legend;
@@ -465,21 +465,6 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
 		}
 	}
 
-    private void zoomTo(SortedSet categoriesOnScreen) {
-        ValueAxis categoryAxis = (ValueAxis) getXAxis();
-        categoryAxis.setAutoRanging(false);
-
-        if (categoriesOnScreen.size() > 1)
-        {
-            categoryAxis.setLowerBound((long)categoriesOnScreen.first());
-            categoryAxis.setUpperBound((long)categoriesOnScreen.last());
-        }
-        else {
-            categoryAxis.setLowerBound(((long)categoriesOnScreen.first() * 0.95));
-            categoryAxis.setUpperBound(((long)categoriesOnScreen.first() * 0.95));
-        }
-    }
-
     private double calculateCategorySize(SortedSet categories) {
         double halfCategorySize = Double.POSITIVE_INFINITY;
         ValueAxis xAxis = (ValueAxis) getXAxis();
@@ -523,17 +508,6 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
             return null;
 
         return categories.subSet(lowestCategoryShowing, true, highestCategoryShowing, true);
-    }
-
-    private void zoomOutOnXAxis(double factor)
-    {
-        ValueAxis xAxis = (ValueAxis) getXAxis();
-        xAxis.setAutoRanging(false);
-        double lowerValue = xAxis.getLowerBound();
-        double upperValue = xAxis.getUpperBound();
-
-        xAxis.setLowerBound(lowerValue - lowerValue * factor);
-        xAxis.setUpperBound(upperValue + upperValue * factor);
     }
 
 

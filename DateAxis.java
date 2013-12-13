@@ -1,4 +1,4 @@
-package com.pixelduke.javafx.chart;
+package com.sutrosoftware.test.metrics.scaling;
 
 import com.sun.javafx.charts.ChartLayoutAnimator;
 import com.sun.javafx.css.converters.SizeConverter;
@@ -33,36 +33,62 @@ public class DateAxis extends ValueAxis<Long> {
 
     /** We use these for auto ranging to pick a user friendly tick unit. (must be increasingly bigger)*/
     private static final double[] TICK_UNIT_DEFAULTS = {
-        86400000,
-        172800000,
-        259200000,
-        345600000,
-        432000000,
-        518400000,
-        604800000,
-        691200000,
-        777600000,
-        864000000,
-        216000000E1,
-        388800000E1,
-        604800000E1,
-        872640000E1,
-        1226880000E1,
-        1667520000E1,
-        2203200000E1,
-        2868480000E1,
-        3672000000E1,
-        4605120000E1,
-        5676480000E1,
-        6877440000E1,
-        8216640000E1,
-        9685440000E1,
-        1129248000E2
+        86400000,       // 1 day
+        172800000,      // 2 das
+        259200000,      // 3 days
+        345600000,      // 4 days
+        432000000,      // 5 days
+        518400000,      // 6 days
+        604800000,      // 7 days
+        691200000,      // 8 days
+        777600000,      // 9 days
+        864000000,      // 10 days
+        216000000E1,    // 15 days
+        388800000E1,    // 20 days
+        604800000E1,    // 25 days
+        872640000E1,    // 31 days ~ 1 month
+        1226880000E1,   // 41 days
+        1667520000E1,   // 51 days
+        2203200000E1,   // 62 days ~ 2 months
+        2868480000E1,   // 77 days
+        3672000000E1,   // 93 days ~ 3 months
+        4605120000E1,   // 108 days
+        5676480000E1,   // 124 days ~ 4 months
+        6877440000E1,   // 139 days
+        8216640000E1,   // 155 days ~ 5 months
+        9685440000E1,   // 170 days
+        1129248000E2,   // 186 days ~ 6 months
+        1445472000E2    // 366 days ~ 1 year
     };
 
     /** These are matching date formatter strings */
     private static final String[] TICK_UNIT_FORMATTER_DEFAULTS = {
-        "MM/dd/yy"
+        "MM/dd/yy",     // 1 day
+        "MM/dd/yy",     // 2 das
+        "MM/dd/yy",     // 3 days
+        "MM/dd/yy",     // 4 days
+        "MM/dd/yy",     // 5 days
+        "MM/dd/yy",     // 6 days
+        "MM/dd/yy",     // 7 days
+        "MM/dd/yy",     // 8 days
+        "MM/dd/yy",     // 9 days
+        "MM/dd/yy",     // 10 days
+        "MM/dd/yy",     // 15 days
+        "MM/dd/yy",     // 20 days
+        "MM/dd/yy",     // 25 days
+        "MMM-yyyy",     // 31 days ~ 1 month
+        "MMM-yyyy",     // 41 days
+        "MMM-yyyy",     // 51 days
+        "MMM-yyyy",     // 62 days ~ 2 months
+        "MMM-yyyy",     // 77 days
+        "MMM-yyyy",     // 93 days ~ 3 months
+        "MMM-yyyy",     // 108 days
+        "MMM-yyyy",     // 124 days ~ 4 months
+        "MMM-yyyy",     // 139 days
+        "MMM-yyyy",     // 155 days ~ 5 months
+        "MMM-yyyy",     // 170 days
+        "MMM-yyyy",     // 186 days ~ 6 months
+        "yyyy"          // 366 days ~ 1 year
     };
 
 
@@ -125,14 +151,14 @@ public class DateAxis extends ValueAxis<Long> {
     // -------------- CONSTRUCTORS -------------------------------------------------------------------------------------
 
     /**
-     * Create a auto-ranging NumberAxis
+     * Create a auto-ranging DateAxis
      */
     public DateAxis() {
         forceZeroInRange.set(false);
     }
 
     /**
-     * Create a non-auto-ranging NumberAxis with the given upper bound, lower bound and tick unit
+     * Create a non-auto-ranging DateAxis with the given upper bound, lower bound and tick unit
      *
      * @param lowerBound The lower bound for this axis, ie min plottable value
      * @param upperBound The upper bound for this axis, ie max plottable value
@@ -144,7 +170,7 @@ public class DateAxis extends ValueAxis<Long> {
     }
 
     /**
-     * Create a non-auto-ranging NumberAxis with the given upper bound, lower bound and tick unit
+     * Create a non-auto-ranging DateAxis with the given upper bound, lower bound and tick unit
      *
      * @param axisLabel The name to display for this axis
      * @param lowerBound The lower bound for this axis, ie min plottable value
@@ -189,14 +215,6 @@ public class DateAxis extends ValueAxis<Long> {
                 getScale(),
                 newIndex
         };
-
-//        return new double[]{
-//                getLowerBound(),
-//                getUpperBound(),
-//                getTickUnit(),
-//                getScale(),
-//                currentRangeIndexProperty.get()
-//        };
     }
 
     private double[] recalculateTicks()
@@ -532,7 +550,7 @@ public class DateAxis extends ValueAxis<Long> {
     // -------------- INNER CLASSES ------------------------------------------------------------------------------------
 
     /**
-     * Default number formatter for NumberAxis, this stays in sync with auto-ranging and formats values appropriately.
+     * Default number formatter for DateAxis, this stays in sync with auto-ranging and formats values appropriately.
      * You can wrap this formatter to add prefixes or suffixes;
      * @since JavaFX 2.0
      */
@@ -549,7 +567,7 @@ public class DateAxis extends ValueAxis<Long> {
         }
 
         /**
-         * Construct a DefaultFormatter for the given NumberAxis
+         * Construct a DefaultFormatter for the given DateAxis
          *
          * @param axis The axis to format tick marks for
          */
@@ -565,7 +583,7 @@ public class DateAxis extends ValueAxis<Long> {
         }
 
         /**
-         * Construct a DefaultFormatter for the given NumberAxis with a prefix and/or suffix.
+         * Construct a DefaultFormatter for the given DateAxis with a prefix and/or suffix.
          *
          * @param axis The axis to format tick marks for
          * @param prefix The prefix to append to the start of formatted number, can be null if not needed
@@ -621,13 +639,9 @@ public class DateAxis extends ValueAxis<Long> {
          * @see StringConverter#toString
          */
         @Override public Long fromString(String string) {
-//            try {
             int prefixLength = (prefix == null)? 0: prefix.length();
             int suffixLength = (suffix == null)? 0: suffix.length();
             return formatter.fromString(string.substring(prefixLength, string.length() - suffixLength)).getTime();
-//            } catch (ParseException e) {
-//                return null;
-//            }
         }
     }
 
@@ -802,6 +816,12 @@ public class DateAxis extends ValueAxis<Long> {
         secondDate = calendar.getTime();
         secondDateValue = secondDate.getTime();
         System.out.println("This is the difference of value between the first and second date (186 days - 6 month) - \t" + (secondDateValue - firstDateValue));
+
+        // What is 366 ( 1 year)
+        calendar.add(Calendar.DAY_OF_MONTH, 366);
+        secondDate = calendar.getTime();
+        secondDateValue = secondDate.getTime();
+        System.out.println("This is the difference of value between the first and second date (366 days - 1 year) - \t" + (secondDateValue - firstDateValue));
     }
 
 }
@@ -809,72 +829,4 @@ public class DateAxis extends ValueAxis<Long> {
 
 
 
-/*
-  // Code to generate tick unit defaults
 
-  public static void main(String[] args) {
-        List<BigDecimal> values = new ArrayList<BigDecimal>();
-        List<String> formats = new ArrayList<String>();
-        for(int power=-10; power <= 12; power ++) {
-            BigDecimal val = new BigDecimal(10);
-            val = val.pow(power, MathContext.DECIMAL32);
-            BigDecimal val2 = val.multiply(new BigDecimal(2.5d));
-            BigDecimal val5 = val.multiply(new BigDecimal(5d));
-            values.add(val);
-            values.add(val2);
-            values.add(val5);
-            System.out.print("["+power+"]  ");
-            System.out.print(
-                    val.doubleValue() + "d, " +
-                            val2.doubleValue() + "d, " +
-                            val5.doubleValue() + "d, "
-            );
-            DecimalFormat df = null;
-            DecimalFormat dfTwoHalf = null;
-            if (power < 0) {
-                String nf = "0.";
-                for (int i=0; i<Math.abs(power); i++) nf = nf+"0";
-                System.out.print("    ---   nf = " + nf);
-                String nf2 = "0.";
-                for (int i=0; i<=Math.abs(power); i++) nf2 = nf2+"0";
-                System.out.print("    ---   nf2 = " + nf2);
-                df = new DecimalFormat(nf);
-                dfTwoHalf = new DecimalFormat(nf2);
-                formats.add(nf);
-                formats.add(nf2);
-                formats.add(nf);
-            } else if (power == 0) {
-                df = new DecimalFormat("0");
-                dfTwoHalf = new DecimalFormat("0.0");
-                formats.add("0");
-                formats.add("0.0");
-                formats.add("0");
-            } else {
-                String nf = "0";
-                for (int i=0; i<Math.abs(power); i++) {
-                    if((i % 3) == 2) {
-                        nf = "#," + nf;
-                    } else {
-                        nf = "#" + nf;
-                    }
-                }
-                System.out.print("    ---   nf = " + nf);
-                formats.add(nf);
-                formats.add(nf);
-                formats.add(nf);
-                dfTwoHalf = df = new DecimalFormat(nf);
-            }
-            System.out.println("        ---      "+
-                    df.format(val.doubleValue())+", "+
-                    dfTwoHalf.format(val2.doubleValue())+", "+
-                    df.format(val5.doubleValue())+", "
-            );
-        }
-        System.out.print("    private static final double[] TICK_UNIT_DEFAULTS = { ");
-        for(BigDecimal val: values) System.out.print(val.doubleValue()+", ");
-        System.out.println(" };");
-        System.out.print("    private static final String[] TICK_UNIT_FORMATTER_DEFAULTS = { ");
-        for(String format: formats) System.out.print("\""+format+"\", ");
-        System.out.println(" };");
-    }
-*/
