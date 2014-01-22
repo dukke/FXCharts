@@ -1,4 +1,4 @@
-package com.sutrosoftware.test.metrics.scaling;
+package com.pixelduke.javafx.chart;
 
 import com.sun.javafx.charts.ChartLayoutAnimator;
 import com.sun.javafx.css.converters.SizeConverter;
