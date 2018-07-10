@@ -1,4 +1,4 @@
-# FXValidation
+# FXCharts
 
 Enhancements to JavaFX builtin charts library.
 
