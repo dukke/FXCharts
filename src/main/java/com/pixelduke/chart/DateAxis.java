@@ -1,4 +1,4 @@
-package com.pixelduke.javafx.chart;
+package com.pixelduke.chart;
 
 import com.sun.javafx.charts.ChartLayoutAnimator;
 import java.util.*;
@@ -264,7 +264,7 @@ public class DateAxis extends ValueAxis<Long> {
         // can never have less than 2 tick marks one for each end
         numOfTickMarks = Math.max(numOfTickMarks, 2);
         // calculate tick unit for the number of ticks can have in the given data range
-        double tickUnit = currentRange / (double) numOfTickMarks;
+        double tickUnitLocal = currentRange / (double) numOfTickMarks;
         // search for the best tick unit that fits
         double tickUnitRounded = 0;
         double minRounded = 0;
@@ -277,7 +277,7 @@ public class DateAxis extends ValueAxis<Long> {
             // find a user friendly match from our default tick units to match calculated tick unit
             for (int i = 0; i < TICK_UNIT_DEFAULTS.length; i++) {
                 double tickUnitDefault = TICK_UNIT_DEFAULTS[i];
-                if (tickUnitDefault > tickUnit) {
+                if (tickUnitDefault > tickUnitLocal) {
                     tickUnitRounded = tickUnitDefault;
                     rangeIndex = i;
                     break;
@@ -301,14 +301,14 @@ public class DateAxis extends ValueAxis<Long> {
                 }
             }
             reqLength = (count - 1) * maxReqTickGap;
-            tickUnit = tickUnitRounded;
+            tickUnitLocal = tickUnitRounded;
             // check if we already found max tick unit
             if (tickUnitRounded == TICK_UNIT_DEFAULTS[TICK_UNIT_DEFAULTS.length - 1]) {
                 // nothing we can do so just have to use this
                 break;
             }
         }
-        return new double[]{minRounded, maxRounded, rangeIndex, tickUnit};
+        return new double[]{minRounded, maxRounded, rangeIndex, tickUnitLocal};
     }
 
     /**
@@ -323,14 +323,14 @@ public class DateAxis extends ValueAxis<Long> {
         final double[] rangeProps = (double[]) range;
         final double lowerBound = rangeProps[0];
         final double upperBound = rangeProps[1];
-        final double tickUnit = rangeProps[2];
+        final double tickUnitLocal = rangeProps[2];
         final double scale = rangeProps[3];
         final double rangeIndex = rangeProps[4];
         currentRangeIndexProperty.set((int) rangeIndex);
         final double oldLowerBound = getLowerBound();
         setLowerBound(lowerBound);
         setUpperBound(upperBound);
-        setTickUnit(tickUnit);
+        setTickUnit(tickUnitLocal);
 
         ReadOnlyDoubleWrapper scalePropertyImplValue = (ReadOnlyDoubleWrapper) ReflectionUtils.forceMethodCall(ValueAxis.class, "scalePropertyImpl", this);
 
@@ -365,17 +365,17 @@ public class DateAxis extends ValueAxis<Long> {
         final double[] rangeProps = (double[]) range;
         final double lowerBound = rangeProps[0];
         final double upperBound = rangeProps[1];
-        final double tickUnit = rangeProps[2];
+        final double tickUnitLocal = rangeProps[2];
         List<Long> tickValues = new ArrayList<Long>();
-        if (tickUnit <= 0 || lowerBound == upperBound) {
+        if (tickUnitLocal <= 0 || lowerBound == upperBound) {
             tickValues.add((long) lowerBound);
         } else if (getTickUnit() > 0) {
-            for (double major = lowerBound; major <= upperBound; major += tickUnit) {
+            for (double major = lowerBound; major <= upperBound; major += tickUnitLocal) {
                 tickValues.add((long) major);
                 if (tickValues.size() > 2000) {
                     // This is a ridiculous amount of major tick marks, something has probably gone wrong
                     System.err.println("Warning we tried to create more than 2000 major tick marks on a NumberAxis. "
-                            + "Lower Bound=" + lowerBound + ", Upper Bound=" + upperBound + ", Tick Unit=" + tickUnit);
+                            + "Lower Bound=" + lowerBound + ", Upper Bound=" + upperBound + ", Tick Unit=" + tickUnitLocal);
                     break;
                 }
             }
@@ -388,20 +388,21 @@ public class DateAxis extends ValueAxis<Long> {
      *
      * @return List of data values where to draw minor tick marks
      */
+    @Override
     protected List<Long> calculateMinorTickMarks() {
         final List<Long> minorTickMarks = new ArrayList<Long>();
         final double lowerBound = getLowerBound();
         final double upperBound = getUpperBound();
-        final double tickUnit = getTickUnit();
-        final double minorUnit = tickUnit / getMinorTickCount();
+        final double tickUnitLocal = getTickUnit();
+        final double minorUnit = tickUnitLocal / getMinorTickCount();
         if (getTickUnit() > 0) {
-            for (double major = lowerBound; major < upperBound; major += tickUnit) {
-                for (double minor = major + minorUnit; minor < (major + tickUnit); minor += minorUnit) {
+            for (double major = lowerBound; major < upperBound; major += tickUnitLocal) {
+                for (double minor = major + minorUnit; minor < (major + tickUnitLocal); minor += minorUnit) {
                     minorTickMarks.add((long) minor);
                     if (minorTickMarks.size() > 10000) {
                         // This is a ridiculous amount of major tick marks, something has probably gone wrong
                         System.err.println("Warning we tried to create more than 10000 minor tick marks on a NumberAxis. "
-                                + "Lower Bound=" + getLowerBound() + ", Upper Bound=" + getUpperBound() + ", Tick Unit=" + tickUnit);
+                                + "Lower Bound=" + getLowerBound() + ", Upper Bound=" + getUpperBound() + ", Tick Unit=" + tickUnitLocal);
                         break;
                     }
                 }
@@ -443,7 +444,7 @@ public class DateAxis extends ValueAxis<Long> {
         if (formatter instanceof DefaultFormatter) {
             labelText = ((DefaultFormatter) formatter).toString(value, rangeIndex);
         } else {
-            labelText = formatter.toString(value);
+            labelText = formatter != null ? formatter.toString(value) : "";
         }
         return measureTickMarkLabelSize(labelText, rotation);
     }
@@ -494,7 +495,7 @@ public class DateAxis extends ValueAxis<Long> {
         // can never have less than 2 tick marks one for each end
         numOfTickMarks = Math.max(numOfTickMarks, 2);
         // calculate tick unit for the number of ticks can have in the given data range
-        double tickUnit = paddedRange / (double) numOfTickMarks;
+        double tickUnitLocal = paddedRange / (double) numOfTickMarks;
         // search for the best tick unit that fits
         double tickUnitRounded = 0;
         double minRounded = 0;
@@ -507,7 +508,7 @@ public class DateAxis extends ValueAxis<Long> {
             // find a user friendly match from our default tick units to match calculated tick unit
             for (int i = 0; i < TICK_UNIT_DEFAULTS.length; i++) {
                 double tickUnitDefault = TICK_UNIT_DEFAULTS[i];
-                if (tickUnitDefault > tickUnit) {
+                if (tickUnitDefault > tickUnitLocal) {
                     tickUnitRounded = tickUnitDefault;
                     rangeIndex = i;
                     break;
@@ -531,7 +532,7 @@ public class DateAxis extends ValueAxis<Long> {
                 }
             }
             reqLength = (count - 1) * maxReqTickGap;
-            tickUnit = tickUnitRounded;
+            tickUnitLocal = tickUnitRounded;
             // check if we already found max tick unit
             if (tickUnitRounded == TICK_UNIT_DEFAULTS[TICK_UNIT_DEFAULTS.length - 1]) {
                 // nothing we can do so just have to use this
@@ -604,11 +605,11 @@ public class DateAxis extends ValueAxis<Long> {
      */
     public static class DefaultFormatter extends StringConverter<Long> {
 
+        private final Date tempDate = new Date();
+
         private TimeStringConverter formatter;
         private String prefix = null;
         private String suffix = null;
-
-        private Date tempDate = new Date();
 
         /**
          * used internally
@@ -624,11 +625,8 @@ public class DateAxis extends ValueAxis<Long> {
          */
         public DefaultFormatter(final DateAxis axis) {
             formatter = getFormatter(axis.isAutoRanging() ? axis.currentRangeIndexProperty.get() : -1);
-            final ChangeListener axisListener = new ChangeListener() {
-                @Override
-                public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                    formatter = getFormatter(axis.isAutoRanging() ? axis.currentRangeIndexProperty.get() : -1);
-                }
+            final ChangeListener axisListener = (ChangeListener) (ObservableValue observable, Object oldValue, Object newValue) -> {
+                formatter = getFormatter(axis.isAutoRanging() ? axis.currentRangeIndexProperty.get() : -1);
             };
             axis.currentRangeIndexProperty.addListener(axisListener);
             axis.autoRangingProperty().addListener(axisListener);
@@ -661,9 +659,10 @@ public class DateAxis extends ValueAxis<Long> {
         }
 
         /**
-         * Converts the object provided into its string form. Format of the
+         * Converts the object provided into its string form.Format of the
          * returned string is defined by this converter.
          *
+         * @param object a date
          * @return a string representation of the object passed in.
          * @see StringConverter#toString
          */
@@ -691,9 +690,10 @@ public class DateAxis extends ValueAxis<Long> {
 
         /**
          * Converts the string provided into a Number defined by the this
-         * converter. Format of the string and type of the resulting object is
+         * converter.Format of the string and type of the resulting object is
          * defined by this converter.
          *
+         * @param string a date
          * @return a Number representation of the string passed in.
          * @see StringConverter#toString
          */

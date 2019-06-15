@@ -1,4 +1,4 @@
-package com.pixelduke.javafx.chart;
+package com.pixelduke.chart;
 
 import com.sun.javafx.charts.Legend;
 import java.util.*;
@@ -10,7 +10,6 @@ import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.css.converter.SizeConverter;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
@@ -21,8 +20,11 @@ import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
 /**
- * Created with IntelliJ IDEA. User: Pedro Date: 29-08-2013 Time: 15:27 To
- * change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA.User: Pedro Date: 29-08-2013 Time: 15:27 To change
+ * this template use File | Settings | File Templates.
+ *
+ * @param <X> X class
+ * @param <Y> Y class
  */
 public class XYBarChart<X, Y> extends XYChart<X, Y> {
     // -------------- PRIVATE FIELDS -------------------------------------------
@@ -81,7 +83,7 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
     /**
      * The gap to leave between bars in separate categories
      */
-    private DoubleProperty categoryGap = new StyleableDoubleProperty(10) {
+    private final DoubleProperty categoryGap = new StyleableDoubleProperty(10) {
         @Override
         protected void invalidated() {
             get();
@@ -189,7 +191,7 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
         Map<Object, Data<X, Y>> categoryMap = seriesCategoryMap.get(series);
 
         if (categoryMap == null) {
-            categoryMap = new HashMap<Object, Data<X, Y>>();
+            categoryMap = new HashMap<>();
             seriesCategoryMap.put(series, categoryMap);
         }
 //        // check if category is already present
@@ -232,14 +234,12 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
             dataRemoveTimeline = createDataRemoveTimeline(item, bar, series);
             dataItemBeingRemoved = item;
             seriesOfDataRemoved = series;
-            dataRemoveTimeline.setOnFinished(new EventHandler<ActionEvent>() {
-                public void handle(ActionEvent event) {
-                    ReflectionUtils.forceMethodCall(XYChart.Data.class, "setSeries", item, new Object[]{null}); // TODO: make sure this is working as expected
-                    getPlotChildren().remove(bar);
-                    removeDataItemFromDisplay(series, item);
-                    dataItemBeingRemoved = null;
-                    updateMap(series, item);
-                }
+            dataRemoveTimeline.setOnFinished((ActionEvent event) -> {
+                ReflectionUtils.forceMethodCall(XYChart.Data.class, "setSeries", item, new Object[]{null}); // TODO: make sure this is working as expected
+                getPlotChildren().remove(bar);
+                removeDataItemFromDisplay(series, item);
+                dataItemBeingRemoved = null;
+                updateMap(series, item);
             });
             dataRemoveTimeline.play();
         } else {
@@ -252,7 +252,7 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     @Override
     protected void dataItemChanged(Data<X, Y> item) {
@@ -284,7 +284,7 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
     protected void seriesAdded(Series<X, Y> series, int seriesIndex) {
         // handle any data already in series
         // create entry in the map
-        Map<Object, Data<X, Y>> categoryMap = new HashMap<Object, Data<X, Y>>();
+        Map<Object, Data<X, Y>> categoryMap = new HashMap<>();
         for (int j = 0; j < series.getData().size(); j++) {
             Data<X, Y> item = series.getData().get(j);
             Node bar = createBar(series, seriesIndex, item, j);
@@ -329,12 +329,10 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
         // remove all symbol nodes
         if (shouldAnimate()) {
             ParallelTransition pt = new ParallelTransition();
-            pt.setOnFinished(new EventHandler<ActionEvent>() {
-                public void handle(ActionEvent event) {
-                    removeSeriesFromDisplay(series);
-                }
+            pt.setOnFinished((ActionEvent event) -> {
+                removeSeriesFromDisplay(series);
             });
-            for (final Data<X, Y> d : series.getData()) {
+            series.getData().forEach(d -> {
                 final Node bar = d.getNode();
                 seriesRemove = true;
                 // Animate series deletion
@@ -349,23 +347,20 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
                     FadeTransition ft = new FadeTransition(Duration.millis(700), bar);
                     ft.setFromValue(1);
                     ft.setToValue(0);
-                    ft.setOnFinished(new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent actionEvent) {
-                            getPlotChildren().remove(bar);
-                            updateMap(series, d);
-                        }
+                    ft.setOnFinished((ActionEvent actionEvent) -> {
+                        getPlotChildren().remove(bar);
+                        updateMap(series, d);
                     });
                     pt.getChildren().add(ft);
                 }
-            }
+            });
             pt.play();
         } else {
-            for (Data<X, Y> d : series.getData()) {
+            series.getData().forEach(d -> {
                 final Node bar = d.getNode();
                 getPlotChildren().remove(bar);
                 updateMap(series, d);
-            }
+            });
             removeSeriesFromDisplay(series);
         }
     }
@@ -373,14 +368,14 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
     static int layoutPlotChildrenCount = 1;
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     @Override
     protected void layoutPlotChildren() {
         System.out.println("Laying out plot children number - " + layoutPlotChildrenCount);
 
-        double barWidth = 0;
-        double categorySize = 0;
+        double barWidth;
+        double categorySize;
         SortedSet categoriesOnScreen = getCategoriesOnScreen();
         if (categoriesOnScreen == null) {
             return;
@@ -594,24 +589,18 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
             item.setYValue(getYAxis().toRealValue(bottomPos));
             t.getKeyFrames().addAll(new KeyFrame(Duration.ZERO,
                     new KeyValue(/*item.currentYProperty()*/(ObjectProperty<Y>) ReflectionUtils.forceMethodCall(Data.class, "currentYProperty", item), /*item.getCurrentY()*/ (Y) ReflectionUtils.forceMethodCall(Data.class, "getCurrentY", item))),
-                    new KeyFrame(Duration.millis(700), new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent actionEvent) {
-                            getPlotChildren().remove(bar);
-                            updateMap(series, item);
-                        }
+                    new KeyFrame(Duration.millis(700), (ActionEvent actionEvent) -> {
+                        getPlotChildren().remove(bar);
+                        updateMap(series, item);
                     },
                             new KeyValue(/*item.currentYProperty()*/(ObjectProperty<Y>) ReflectionUtils.forceMethodCall(Data.class, "currentYProperty", item), item.getYValue(),
                                     Interpolator.EASE_BOTH)));
         } else {
             item.setXValue(getXAxis().toRealValue(getXAxis().getZeroPosition()));
             t.getKeyFrames().addAll(new KeyFrame(Duration.ZERO, new KeyValue(/*item.currentXProperty()*/(ObjectProperty<X>) ReflectionUtils.forceMethodCall(Data.class, "currentXProperty", item), /*item.getCurrentX()*/ (X) ReflectionUtils.forceMethodCall(Data.class, "getCurrentX", item))),
-                    new KeyFrame(Duration.millis(700), new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent actionEvent) {
-                            getPlotChildren().remove(bar);
-                            updateMap(series, item);
-                        }
+                    new KeyFrame(Duration.millis(700), (ActionEvent actionEvent) -> {
+                        getPlotChildren().remove(bar);
+                        updateMap(series, item);
                     },
                             new KeyValue(/*item.currentXProperty()*/(ObjectProperty<X>) ReflectionUtils.forceMethodCall(Data.class, "currentXProperty", item), item.getXValue(),
                                     Interpolator.EASE_BOTH)));
@@ -699,8 +688,7 @@ public class XYBarChart<X, Y> extends XYChart<X, Y> {
 
         static {
 
-            final List<CssMetaData<? extends Styleable, ?>> styleables
-                    = new ArrayList<CssMetaData<? extends Styleable, ?>>(XYChart.getClassCssMetaData());
+            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(XYChart.getClassCssMetaData());
             styleables.add(BAR_GAP);
             styleables.add(CATEGORY_GAP);
             STYLEABLES = Collections.unmodifiableList(styleables);
